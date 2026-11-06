@@ -31,7 +31,6 @@ school-management/
 │   ├── scripts/              # Migration, seed, and data viewer utilities
 │   └── package.json
 │
-├── start-dev.bat             # One-click Windows launcher for both servers
 └── package.json              # Root workspace runner scripts
 ```
 
@@ -64,12 +63,14 @@ npm install
 
 ### 4. Run Both Servers
 
-**Option A (One-Click on Windows):**
-Double-click `start-dev.bat` in the repository root.
-
-**Option B (Manual):**
 - **Backend**: `cd school-backend && npm start` (runs on `http://localhost:5000`)
 - **Frontend**: `cd school-frontend && npm run dev` (runs on `http://localhost:3000`)
+
+Or run from the root workspace:
+```bash
+npm run start:backend
+npm run start:frontend
+```
 
 ---
 
@@ -78,4 +79,3 @@ Double-click `start-dev.bat` in the repository root.
 - **School Code**: `DEMO`
 - **Email**: `admin@demo.schoolerp.com`
 - **Password**: `Admin@123`
-
