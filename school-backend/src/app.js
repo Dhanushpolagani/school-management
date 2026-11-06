@@ -34,6 +34,28 @@ const limiter = rateLimit({
 });
 app.use("/api", limiter);
 
+// ── Health Check (Public) ───────────────────────────
+app.get("/api/health", async (req, res) => {
+  const pool = require("./config/db");
+  try {
+    const result = await pool.query(
+      "SELECT current_database() AS database, NOW() AS server_time"
+    );
+    res.json({
+      success: true,
+      message: "Smart School ERP API is running",
+      database: result.rows[0].database,
+      serverTime: result.rows[0].server_time,
+    });
+  } catch (error) {
+    console.error("Health check failed:", error.message);
+    res.status(503).json({
+      success: false,
+      message: "Database unavailable",
+    });
+  }
+});
+
 // ── Route Imports ───────────────────────────────────
 const authRoutes = require("./routes/auth");
 const tenantRoutes = require("./routes/tenant");
@@ -106,28 +128,6 @@ app.use("/api/audit-logs", auditRoutes);
 app.use("/api/security", auditRoutes);
 app.use("/api", communicationRoutes);
 app.use("/api", auditRoutes);
-
-// ── Health Check ────────────────────────────────────
-app.get("/api/health", async (req, res) => {
-  const pool = require("./config/db");
-  try {
-    const result = await pool.query(
-      "SELECT current_database() AS database, NOW() AS server_time"
-    );
-    res.json({
-      success: true,
-      message: "Smart School ERP API is running",
-      database: result.rows[0].database,
-      serverTime: result.rows[0].server_time,
-    });
-  } catch (error) {
-    console.error("Health check failed:", error.message);
-    res.status(503).json({
-      success: false,
-      message: "Database unavailable",
-    });
-  }
-});
 
 // ── Unknown Route Handler ───────────────────────────
 app.use((req, res) => {
