@@ -78,3 +78,4 @@ Double-click `start-dev.bat` in the repository root.
 - **School Code**: `DEMO`
 - **Email**: `admin@demo.schoolerp.com`
 - **Password**: `Admin@123`
+

@@ -10,3 +10,4 @@
     "db:view": "cd school-backend && npm run db:view"
   }
 }
+

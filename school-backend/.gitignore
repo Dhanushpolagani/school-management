@@ -10,3 +10,4 @@ npm-debug.log*
 thunder-test-results.json
 storage/*
 !storage/.gitkeep
+
