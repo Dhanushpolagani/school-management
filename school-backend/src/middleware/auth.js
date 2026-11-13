@@ -1,5 +1,5 @@
+
 const jwt = require("jsonwebtoken");
-const pool = require("../config/db");
 
 const ROLES = [
   "super_admin",
@@ -15,90 +15,95 @@ const ROLES = [
   "student",
 ];
 
-/**
- * verifyToken — validates JWT from HttpOnly cookie or Authorization Bearer header
- * Attaches req.user = { id, sub, email, role, roles, tenantId }
- */
 function verifyToken(req, res, next) {
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret || secret.length < 32) {
+    console.error("JWT_SECRET is missing or too short.");
+    return res.status(500).json({
+      success: false,
+      message: "Authentication configuration error.",
+    });
+  }
+
   let token = req.cookies?.access_token;
 
-  if (!token && req.headers?.authorization?.startsWith("Bearer ")) {
+  if (!token && req.headers.authorization?.startsWith("Bearer ")) {
     token = req.headers.authorization.substring(7).trim();
   }
 
   if (!token) {
     return res.status(401).json({
       success: false,
-      error: { message: "Unauthorized — authentication required" },
-      message: "Authentication required",
+      message: "Authentication required.",
     });
   }
 
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "REPLACE_WITH_A_LONG_RANDOM_SECRET_KEY"
-    );
+    const decoded = jwt.verify(token, secret);
 
-    const userId = decoded.id || decoded.sub;
+    const userId = decoded.sub || decoded.id;
     const tenantId = decoded.tenantId || decoded.tenant_id;
-    const userRole = decoded.role || (Array.isArray(decoded.roles) ? decoded.roles[0] : "student");
     const roles = Array.isArray(decoded.roles)
       ? decoded.roles
-      : [userRole].filter(Boolean);
+      : [decoded.role || "student"];
+
+    if (
+      !userId ||
+      !tenantId ||
+      decoded.tokenType !== "access"
+    ) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid authentication token.",
+      });
+    }
 
     req.user = {
       ...decoded,
       id: String(userId),
       sub: String(userId),
       tenantId: String(tenantId),
-      role: userRole,
+      role: roles[0],
       roles,
     };
 
     req.tenantId = String(tenantId);
 
-    next();
+    return next();
   } catch (error) {
     return res.status(401).json({
       success: false,
-      error: { message: "Token expired or invalid" },
-      message: "Invalid or expired authentication token",
+      message: "Token expired or invalid.",
     });
   }
 }
 
-/**
- * requireRole(...roles) — RBAC gate
- * Usage: router.get('/resource', verifyToken, requireRole('school_admin','teacher'), handler)
- */
 function requireRole(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
         success: false,
-        error: { message: "Unauthorized" },
-        message: "Authentication required",
+        message: "Authentication required.",
       });
     }
 
     const userRoles = req.user.roles || [req.user.role];
-    const hasRole = userRoles.some(
-      (role) =>
-        allowedRoles.includes(role) ||
-        (role === "school_admin" && allowedRoles.includes("admin")) ||
-        (role === "admin" && allowedRoles.includes("school_admin"))
+
+    const hasRole = userRoles.some((role) =>
+      allowedRoles.includes(role) ||
+      (role === "school_admin" && allowedRoles.includes("admin")) ||
+      (role === "admin" && allowedRoles.includes("school_admin"))
     );
 
     if (!hasRole) {
       return res.status(403).json({
         success: false,
-        error: { message: "Forbidden — insufficient role" },
-        message: "Insufficient permissions",
+        message: "Insufficient permissions.",
       });
     }
 
-    next();
+    return next();
   };
 }
 
